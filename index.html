@@ -1,79 +1,62 @@
-<script>
-  console.log("📡 Iniciando scanner...");
-
-  const html5QrCode = new Html5Qrcode("reader");
-  html5QrCode.start(
-    {facingMode: "environment"},
-    {fps: 10, qrbox: 250},
-    async decodedText => {
-      console.log("✅ QR Code lido:", decodedText);
-      html5QrCode.stop();
-      alert("Enviando nota para validação...");
-
-      fetch("https://midiasocialpam.wixsite.com/ebookcampeao/_functions/register", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ chave: decodedText })
-      })
-      .then(response => {
-        console.log("📥 Resposta recebida do Wix:", response);
-        return response.json();
-      })
-      .then(res => {
-        console.log("📦 Resposta JSON do Wix:", res);
-        if (res.ok) {
-          alert("✅ Pontos creditados: +" + res.pontos);
-        } else {
-          alert("⚠️ Erro: " + res.msg);
-        }
-      })
-      .catch(error => {
-        console.error("❌ Erro na requisição:", error);
-        alert("Erro ao enviar dados para o Wix");
-      });
-    }
-  );
-</script>
 <!DOCTYPE html>
-<html>
+<html lang="pt-br">
 <head>
+  <meta charset="UTF-8" />
+  <title>Scanner de Nota</title>
   <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+  <style>
+    body { text-align: center; font-family: sans-serif; background: #f2f2f2; padding: 30px; }
+    #reader { width: 320px; margin: auto; }
+  </style>
 </head>
 <body>
-  <div id="reader" style="width:100%;"></div>
-  <script>
-    const html5QrCode = new Html5Qrcode("reader");
-    html5QrCode.start(
-      {facingMode: "environment"},
-      {fps: 10, qrbox: 250},
-      async decodedText => {
-        html5QrCode.stop();
-        alert("Enviando nota para validação...");
-        console.log("✅ QR Code lido:", decodedText);
+  <h1>Escaneie sua nota</h1>
+  <div id="reader"></div>
+  <p id="status">Aguardando leitura...</p>
 
-        fetch("https://midiasocialpam.wixsite.com/ebookcampeao/_functions/register", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ chave: decodedText })
-        })
-        .then(response => {
-          console.log("📥 Resposta recebida do Wix:", response);
-          return response.json();
-        })
-        .then(res => {
-          console.log("📦 Resposta JSON do Wix:", res);
-          if (res.ok) {
-            alert("✅ Pontos creditados: +" + res.pontos);
-          } else {
-            alert("⚠️ Erro: " + res.msg);
+  <script>
+    console.log("📡 Iniciando scanner...");
+
+    const html5QrCode = new Html5Qrcode("reader");
+
+    Html5Qrcode.getCameras().then(devices => {
+      if (devices && devices.length) {
+        const cameraId = devices[0].id;
+        html5QrCode.start(
+          cameraId,
+          { fps: 10, qrbox: 250 },
+          async decodedText => {
+            console.log("✅ QR Code lido:", decodedText);
+            document.getElementById("status").innerText = "Enviando para validação...";
+
+            fetch("https://midiasocialpam.wixsite.com/ebookcampeao/_functions/register", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ chave: decodedText })
+            })
+            .then(response => {
+              console.log("📥 Resposta recebida:", response);
+              return response.json();
+            })
+            .then(res => {
+              console.log("📦 JSON da resposta:", res);
+              if (res.ok) {
+                document.getElementById("status").innerText = `✅ Pontos creditados: ${res.pontos}`;
+              } else {
+                document.getElementById("status").innerText = `⚠️ ${res.msg}`;
+              }
+            })
+            .catch(err => {
+              console.error("❌ Erro:", err);
+              document.getElementById("status").innerText = "Erro ao enviar dados";
+            });
           }
-        })
-        .catch(error => {
-          console.error("❌ Erro na requisição:", error);
-          alert("Erro ao enviar dados para o Wix");
-        });
+        );
       }
-    );
+    }).catch(err => {
+      console.error("❌ Erro ao acessar câmera:", err);
+      document.getElementById("status").innerText = "Erro ao acessar a câmera. Verifique as permissões.";
+    });
   </script>
 </body>
 </html>
