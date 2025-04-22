@@ -1,3 +1,39 @@
+<script>
+  console.log("📡 Iniciando scanner...");
+
+  const html5QrCode = new Html5Qrcode("reader");
+  html5QrCode.start(
+    {facingMode: "environment"},
+    {fps: 10, qrbox: 250},
+    async decodedText => {
+      console.log("✅ QR Code lido:", decodedText);
+      html5QrCode.stop();
+      alert("Enviando nota para validação...");
+
+      fetch("https://midiasocialpam.wixsite.com/ebookcampeao/_functions/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ chave: decodedText })
+      })
+      .then(response => {
+        console.log("📥 Resposta recebida do Wix:", response);
+        return response.json();
+      })
+      .then(res => {
+        console.log("📦 Resposta JSON do Wix:", res);
+        if (res.ok) {
+          alert("✅ Pontos creditados: +" + res.pontos);
+        } else {
+          alert("⚠️ Erro: " + res.msg);
+        }
+      })
+      .catch(error => {
+        console.error("❌ Erro na requisição:", error);
+        alert("Erro ao enviar dados para o Wix");
+      });
+    }
+  );
+</script>
 <!DOCTYPE html>
 <html>
 <head>
