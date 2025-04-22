@@ -1,49 +1,39 @@
 
 <!DOCTYPE html>
-<html lang="pt-br">
+<html>
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Scanner de Nota Fiscal</title>
-  <script src="https://unpkg.com/html5-qrcode@2.3.3/html5-qrcode.min.js"></script>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      padding: 2rem;
-      text-align: center;
-      background-color: #f7f7f7;
-    }
-    #reader {
-      width: 300px;
-      margin: auto;
-    }
-    #result {
-      margin-top: 20px;
-      font-size: 18px;
-      color: green;
-    }
-  </style>
+  <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
 </head>
 <body>
-  <h1>Escaneie a Nota Fiscal</h1>
-  <div id="reader"></div>
-  <div id="result">Aguardando leitura...</div>
-
+  <div id="reader" style="width:100%;"></div>
   <script>
-    function onScanSuccess(decodedText, decodedResult) {
-      document.getElementById('result').innerText = "QR Code lido: " + decodedText;
-      // Aqui você pode enviar decodedText para seu backend via fetch()
-    }
-
     const html5QrCode = new Html5Qrcode("reader");
     html5QrCode.start(
-      { facingMode: "environment" },
-      { fps: 10, qrbox: 250 },
-      onScanSuccess
-    ).catch(err => {
-      document.getElementById('result').innerText = "Erro ao acessar a câmera.";
-      console.error(err);
-    });
+      {facingMode: "environment"},
+      {fps: 10, qrbox: 250},
+      async decodedText => {
+        html5QrCode.stop();
+        alert("Enviando nota para validação...");
+
+        fetch("https://midiasocialpam.wixsite.com/_functions/register", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ chave: decodedText })
+        })
+        .then(response => response.json())
+        .then(res => {
+          if (res.ok) {
+            alert("✅ Pontos creditados: +" + res.pontos);
+          } else {
+            alert("⚠️ Erro: " + res.msg);
+          }
+        })
+        .catch(error => {
+          console.error(error);
+          alert("Erro ao enviar dados para o Wix");
+        });
+      }
+    );
   </script>
 </body>
 </html>
