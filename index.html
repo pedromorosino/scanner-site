@@ -7,61 +7,72 @@
   <style>
     body { text-align: center; font-family: sans-serif; background: #f2f2f2; padding: 30px; }
     #reader { width: 320px; margin: auto; }
+    #flipCameraBtn { margin-top: 20px; padding: 10px 20px; font-size: 16px; }
   </style>
 </head>
 <body>
   <h1>Escaneie sua nota</h1>
   <div id="reader"></div>
   <p id="status">Aguardando leitura...</p>
+  <button id="flipCameraBtn">Trocar Câmera</button>
 
   <script>
     console.log("📡 Iniciando scanner...");
 
-    const html5QrCode = new Html5Qrcode("reader");
+    let html5QrCode = new Html5Qrcode("reader");
+    let usingBackCamera = true; // Começa na câmera traseira
 
-html5QrCode.start(
-  { facingMode: { exact: "environment" } }, // Força câmera traseira
-  { fps: 10, qrbox: 250 },
-  async decodedText => {
-    console.log("✅ QR Code lido:", decodedText);
-    // ... o restante do seu fluxo aqui
-  }
-).catch(err => {
-  console.error("Erro ao abrir a câmera traseira:", err);
-  document.getElementById("status").innerText = "Erro ao acessar a câmera.";
-});
-          async decodedText => {
-            console.log("✅ QR Code lido:", decodedText);
-            document.getElementById("status").innerText = "Enviando para validação...";
+    function startScanner() {
+      const facingMode = usingBackCamera ? { exact: "environment" } : "user";
 
-            fetch("https://midiasocialpam.wixsite.com/ebookcampeao/_functions/register", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ chave: decodedText })
-            })
-            .then(response => {
-              console.log("📥 Resposta recebida:", response);
-              return response.json();
-            })
-            .then(res => {
-              console.log("📦 JSON da resposta:", res);
-              if (res.ok) {
-                document.getElementById("status").innerText = `✅ Pontos creditados: ${res.pontos}`;
-              } else {
-                document.getElementById("status").innerText = `⚠️ ${res.msg}`;
-              }
-            })
-            .catch(err => {
-              console.error("❌ Erro:", err);
-              document.getElementById("status").innerText = "Erro ao enviar dados";
-            });
-          }
-        );
+      html5QrCode.start(
+        { facingMode: facingMode },
+        { fps: 10, qrbox: 250 },
+        async decodedText => {
+          console.log("✅ QR Code lido:", decodedText);
+          document.getElementById("status").innerText = "Enviando para validação...";
+
+          fetch("https://midiasocialpam.wixsite.com/ebookcampeao/_functions/register", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ chave: decodedText })
+          })
+          .then(response => {
+            console.log("📥 Resposta recebida:", response);
+            return response.json();
+          })
+          .then(res => {
+            console.log("📦 JSON da resposta:", res);
+            if (res.ok) {
+              document.getElementById("status").innerText = `✅ Pontos creditados: ${res.pontos}`;
+            } else {
+              document.getElementById("status").innerText = `⚠️ ${res.msg}`;
+            }
+          })
+          .catch(err => {
+            console.error("❌ Erro:", err);
+            document.getElementById("status").innerText = "Erro ao enviar dados.";
+          });
+        }
+      ).catch(err => {
+        console.error("❌ Erro ao acessar câmera:", err);
+        document.getElementById("status").innerText = "Erro ao acessar a câmera. Verifique as permissões.";
+      });
+    }
+
+    // Função para inverter câmera
+    document.getElementById("flipCameraBtn").addEventListener("click", async () => {
+      try {
+        await html5QrCode.stop(); // Para o scanner atual
+        usingBackCamera = !usingBackCamera; // Alterna câmera
+        startScanner(); // Reinicia scanner
+      } catch (err) {
+        console.error("Erro ao alternar câmera:", err);
       }
-    }).catch(err => {
-      console.error("❌ Erro ao acessar câmera:", err);
-      document.getElementById("status").innerText = "Erro ao acessar a câmera. Verifique as permissões.";
     });
+
+    // Iniciar o scanner quando carregar a página
+    startScanner();
   </script>
 </body>
 </html>
